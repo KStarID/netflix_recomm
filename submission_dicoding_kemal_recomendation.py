@@ -61,15 +61,16 @@ files.upload()  # Unggah file kaggle.json yang Anda dapatkan dari akun Kaggle An
 # Ekstrak file ZIP
 !unzip netflix-shows.zip -d netflix-shows
 
+# Membaca data
 df = pd.read_csv('/content/netflix-shows/netflix_titles.csv', skipfooter=1, engine='python')
 df.info()
 df.describe()
 
 """# Data Exploration"""
 
-df.head()
+df.head() # Menampilkan 5 data pertama
 
-df.info()
+df.info() # Menampilkan informasi data
 
 df.describe()
 
@@ -132,9 +133,9 @@ def clean_text(text):
 # Membuat kolom baru untuk content-based filtering
 df['content_features'] = df['director'] + ' ' + df['cast'] + ' ' + df['listed_in'] + ' ' + df['description']
 
-df['content_features_cleaned'] = df['content_features'].apply(clean_text)
+df['content_features_cleaned'] = df['content_features'].apply(clean_text) # Proses cleaning
 
-df
+df # Menampilkan data
 
 # Membuat dataframe untuk simulasi rating
 np.random.seed(42)
@@ -211,237 +212,6 @@ def get_content_based_recommendations(title, cosine_sim=cosine_sim, df=df, indic
     recommendations['similarity_score'] = [i[1] for i in sim_scores]
     return recommendations
 
-"""# Collaborative Filtering"""
-
-# Membuat mapping untuk user_id dan item_id
-user_ids = ratings_df['user_id'].unique()
-item_ids = ratings_df['item_id'].unique()
-
-# Pastikan item_ids ada dalam dataset Netflix
-valid_item_ids = []
-for item_id in item_ids:
-    if item_id in df['show_id'].values:
-        valid_item_ids.append(item_id)
-
-print(f"Total item_ids: {len(item_ids)}")
-print(f"Valid item_ids: {len(valid_item_ids)}")
-
-# Buat mapping hanya untuk item yang valid
-user_to_index = {user_id: idx for idx, user_id in enumerate(user_ids)}
-index_to_user = {idx: user_id for user_id, idx in user_to_index.items()}
-
-item_to_index = {item_id: idx for idx, item_id in enumerate(valid_item_ids)}
-index_to_item = {idx: item_id for item_id, idx in item_to_index.items()}
-
-# Jumlah total item valid
-n_items = len(valid_item_ids)
-
-class RecommenderNet(keras.Model):
-    def __init__(self, num_users, num_items, embedding_size, **kwargs):
-        super(RecommenderNet, self).__init__(**kwargs)
-        self.num_users = num_users
-        self.num_items = num_items
-        self.embedding_size = embedding_size
-
-        # Embedding layer untuk user
-        self.user_embedding = layers.Embedding(
-            num_users,
-            embedding_size,
-            embeddings_initializer="he_normal",
-            embeddings_regularizer=keras.regularizers.l2(1e-6),
-            name="user_embedding"
-        )
-
-        # Embedding layer untuk item
-        self.item_embedding = layers.Embedding(
-            num_items,
-            embedding_size,
-            embeddings_initializer="he_normal",
-            embeddings_regularizer=keras.regularizers.l2(1e-6),
-            name="item_embedding"
-        )
-
-        # Bias untuk user dan item
-        self.user_bias = layers.Embedding(
-            num_users, 1, embeddings_initializer="zeros", name="user_bias"
-        )
-        self.item_bias = layers.Embedding(
-            num_items, 1, embeddings_initializer="zeros", name="item_bias"
-        )
-
-        # MLP layers
-        self.dense_1 = layers.Dense(64, activation="relu")
-        self.dense_2 = layers.Dense(32, activation="relu")
-        self.dense_3 = layers.Dense(1)
-
-    def call(self, inputs):
-        user_vector = self.user_embedding(inputs[:, 0])
-        user_bias = self.user_bias(inputs[:, 0])
-        item_vector = self.item_embedding(inputs[:, 1])
-        item_bias = self.item_bias(inputs[:, 1])
-
-        # Dot product dari user dan item embeddings
-        dot_user_item = tf.reduce_sum(user_vector * item_vector, axis=1, keepdims=True)
-
-        # Concatenate semua fitur
-        x = tf.concat([user_vector, item_vector, dot_user_item, user_bias, item_bias], axis=1)
-
-        # Feed forward
-        x = self.dense_1(x)
-        x = self.dense_2(x)
-        x = self.dense_3(x)
-
-        # Menambahkan sigmoid activation untuk membatasi output antara 0 dan 1
-        # Kemudian mengalikan dengan 5 untuk mendapatkan rating 0-5
-        return tf.nn.sigmoid(x) * 5
-
-# Konversi data rating ke format yang sesuai untuk pelatihan
-# Filter hanya rating dengan item_id yang valid
-filtered_ratings_df = ratings_df[ratings_df['item_id'].isin(valid_item_ids)]
-
-user_indices = filtered_ratings_df['user_id'].map(user_to_index).values
-item_indices = filtered_ratings_df['item_id'].map(item_to_index).values
-ratings = filtered_ratings_df['rating'].values
-
-# Definisikan model
-n_users = len(user_to_index)
-n_items = len(item_to_index)
-n_latent_factors = 50
-
-# Input layers
-user_input = Input(shape=(1,), name='user_input')
-item_input = Input(shape=(1,), name='item_input')
-
-# Embedding layers
-user_embedding = Embedding(n_users, n_latent_factors, name='user_embedding')(user_input)
-item_embedding = Embedding(n_items, n_latent_factors, name='item_embedding')(item_input)
-
-# Flatten embeddings
-user_vector = Flatten(name='user_vector')(user_embedding)
-item_vector = Flatten(name='item_vector')(item_embedding)
-
-# Compute dot product
-dot_product = Dot(axes=1, name='dot_product')([user_vector, item_vector])
-
-# Create model
-model = Model(inputs=[user_input, item_input], outputs=dot_product)
-
-# Compile model
-model.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
-
-# Train model dengan callback untuk menghindari overfitting
-early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
-
-history = model.fit(
-    [user_indices, item_indices],
-    ratings,
-    batch_size=64,
-    epochs=20,
-    verbose=1,
-    validation_split=0.2,
-    callbacks=[early_stopping]
-)
-
-# Plot training & validation loss
-plt.figure(figsize=(10, 6))
-plt.plot(history.history['loss'], label='Training Loss')
-plt.plot(history.history['val_loss'], label='Validation Loss')
-plt.title('Model Loss')
-plt.ylabel('Loss')
-plt.xlabel('Epoch')
-plt.legend()
-plt.show()
-plt.close()
-
-def get_collaborative_recommendations(user_id, top_n=10):
-    """
-    Fungsi untuk mendapatkan rekomendasi film/acara TV berdasarkan collaborative filtering
-
-    Parameters:
-    user_id (str): ID pengguna
-    top_n (int): Jumlah rekomendasi yang diinginkan
-
-    Returns:
-    pd.DataFrame: DataFrame berisi rekomendasi film/acara TV
-    """
-    # Mendapatkan indeks user
-    user_idx = user_to_index.get(user_id)
-    if user_idx is None:
-        print(f"User ID {user_id} tidak ditemukan.")
-        return None
-
-    # Mendapatkan item yang sudah dirating oleh user
-    user_rated_items = set(ratings_df[ratings_df['user_id'] == user_id]['item_id'])
-
-    # Mendapatkan item yang belum dirating
-    all_items = set(item_to_index.keys())
-    unrated_items = list(all_items - user_rated_items)
-
-    # Jika tidak ada item yang belum dirating
-    if not unrated_items:
-        print(f"User ID {user_id} telah memberikan rating untuk semua item.")
-        return None
-
-    # Membuat data untuk prediksi dengan penanganan error
-    valid_items = []
-    for item_id in unrated_items:
-        if item_id in item_to_index:
-            valid_items.append(item_id)
-
-    if not valid_items:
-        print(f"User ID {user_id} tidak memiliki item yang belum dirating dengan indeks yang diketahui.")
-        return None
-
-    user_item_array = np.array([[user_idx, item_to_index[item_id]] for item_id in valid_items])
-
-    # Memprediksi rating dengan verbose=0 untuk menghindari error math domain
-    try:
-        ratings = model.predict([user_item_array[:, 0], user_item_array[:, 1]], verbose=0).flatten()
-    except Exception as e:
-        print(f"Error saat memprediksi rating: {str(e)}")
-        # Coba alternatif format input jika format pertama gagal
-        try:
-            ratings = model.predict(user_item_array, verbose=0).flatten()
-        except Exception as e:
-            print(f"Error alternatif saat memprediksi rating: {str(e)}")
-            return None
-
-    # Mengurutkan berdasarkan rating tertinggi
-    top_indices = np.argsort(ratings)[-top_n:][::-1]
-
-    # Mendapatkan item_id asli dengan penanganan error
-    recommended_items = []
-    for i in top_indices:
-        if i < len(valid_items):
-            recommended_items.append(valid_items[i])
-
-    if not recommended_items:
-        print(f"Tidak ada rekomendasi yang ditemukan untuk User ID {user_id}.")
-        return None
-
-    # Membuat dataframe rekomendasi dengan penanganan error
-    recommendations = []
-    for i, item_id in enumerate(recommended_items):
-        try:
-            # Cari item di dataset Netflix berdasarkan item_id
-            item_data = df[df['show_id'] == item_id].iloc[0]
-            recommendations.append({
-                'Rank': i+1,
-                'Title': item_data['title'],
-                'Type': item_data['type'],
-                'Genre': item_data['listed_in'],
-                'Predicted Rating': ratings[top_indices[i]]
-            })
-        except (IndexError, KeyError) as e:
-            print(f"Error saat mengakses data untuk item_id {item_id}: {str(e)}")
-            continue
-
-    if not recommendations:
-        print(f"Tidak dapat membuat rekomendasi untuk User ID {user_id}.")
-        return None
-
-    return pd.DataFrame(recommendations)
-
 """# Evaluation
 
 # Uji Coba
@@ -499,37 +269,3 @@ except IndexError:
     # Mendapatkan indeks film dari judul
     movie_idx1 = df[df['title'] == sample_titles[0]].index[0]
     movie_idx2 = df[df['title'] == sample_titles[1]].index[0]
-
-# Kode untuk menguji fungsi
-try:
-    # Gunakan user_id yang pasti ada dalam dataset
-    available_users = filtered_ratings_df['user_id'].unique()
-
-    if len(available_users) > 0:
-        # Pilih user yang memiliki banyak rating
-        user_ratings_count = filtered_ratings_df['user_id'].value_counts()
-        active_users = user_ratings_count[user_ratings_count > 10].index.tolist()
-
-        if active_users:
-            sample_user = active_users[0]
-        else:
-            sample_user = available_users[0]
-
-        print(f"Menggunakan user_id: {sample_user}")
-
-        # Dapatkan rekomendasi
-        recommendations = get_collaborative_recommendations(sample_user)
-
-        # Tampilkan hasil
-        if recommendations is not None and len(recommendations) > 0:
-            print(f"\nRekomendasi untuk {sample_user}:")
-            for i, (_, row) in enumerate(recommendations.iterrows()):
-                print(f"{i+1}. {row['Title']} - {row['Type']} - {row['Genre']} (Prediksi Rating: {row['Predicted Rating']:.2f})")
-        else:
-            print(f"Tidak ada rekomendasi yang ditemukan untuk {sample_user}")
-    else:
-        print("Tidak ada user dalam dataset")
-except Exception as e:
-    print(f"Error saat mendapatkan rekomendasi: {str(e)}")
-    import traceback
-    traceback.print_exc()

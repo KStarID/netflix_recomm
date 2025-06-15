@@ -18,29 +18,22 @@ Berdasarkan latar belakang di atas, berikut adalah rumusan masalah yang akan dis
 
 - Bagaimana cara membantu pengguna menemukan konten Netflix yang sesuai dengan preferensi mereka di tengah banyaknya pilihan yang tersedia?
 - Bagaimana cara memanfaatkan informasi konten (seperti genre, deskripsi, aktor, dll.) untuk memberikan rekomendasi yang relevan?
-- Bagaimana cara memanfaatkan pola menonton pengguna lain untuk memberikan rekomendasi yang personalisasi?
 
 ### Goals
 Tujuan dari proyek ini adalah:
 
 - Mengembangkan sistem rekomendasi yang dapat menyarankan konten Netflix yang relevan dengan preferensi pengguna.
 - Memanfaatkan informasi konten untuk membuat sistem rekomendasi berbasis konten (content-based filtering) yang dapat merekomendasikan konten serupa dengan yang disukai pengguna.
-- Mengimplementasikan sistem rekomendasi berbasis kolaboratif (collaborative filtering) yang dapat merekomendasikan konten berdasarkan preferensi pengguna lain yang memiliki selera serupa.
+- Melakukan test case dan mendapatkan analisis dari model yang telah dibuat.
 
 ### Solution Statements
-Untuk mencapai tujuan di atas, berikut adalah pendekatan solusi yang akan diimplementasikan:
+Untuk mencapai tujuan di atas, berikut adalah pendekatan solusi yang akan diimplementasikan yaitu Content-Based Filtering:
 
 1. Content-Based Filtering
    
    - Menggunakan teknik TF-IDF (Term Frequency-Inverse Document Frequency) untuk mengekstrak fitur dari deskripsi konten dan genre.
    - Menghitung kesamaan kosinus (cosine similarity) antara konten untuk menemukan konten yang serupa.
    - Merekomendasikan konten yang memiliki kesamaan tertinggi dengan konten yang disukai pengguna.
-
-2. Collaborative Filtering
-   
-   - Mengimplementasikan model SVD (Singular Value Decomposition) untuk mempelajari pola tersembunyi dari interaksi pengguna-konten.
-   - Menggunakan teknik matrix factorization untuk memprediksi rating yang mungkin diberikan pengguna pada konten yang belum mereka tonton.
-   - Merekomendasikan konten dengan prediksi rating tertinggi.
 
 ## Data Understanding
 
@@ -124,20 +117,6 @@ Kekurangan:
 - Tidak memperhitungkan faktor popularitas atau kualitas konten.
 - Terlalu bergantung pada metadata konten yang tersedia.
 
-### 2. Collaborative Filtering
-Model Collaborative Filtering merekomendasikan konten berdasarkan preferensi pengguna lain yang memiliki selera serupa. Dalam implementasi ini, digunakan teknik SVD (Singular Value Decomposition) untuk mempelajari pola tersembunyi dari interaksi pengguna-konten.
-
-Kelebihan:
-
-- Dapat merekomendasikan konten yang mungkin tidak terkait secara konten tetapi disukai oleh pengguna dengan selera serupa.
-- Tidak memerlukan informasi tentang karakteristik konten.
-- Dapat menemukan pola tersembunyi dalam preferensi pengguna.
-Kekurangan:
-
-- Menghadapi masalah cold start untuk pengguna baru atau konten baru.
-- Memerlukan data interaksi pengguna yang cukup besar untuk memberikan rekomendasi yang baik.
-- Sulit untuk menjelaskan mengapa suatu konten direkomendasikan.
-
 ## Evaluation
 Dalam proyek ini, evaluasi dilakukan untuk mengukur seberapa baik model rekomendasi dalam memberikan rekomendasi yang relevan kepada pengguna. Beberapa metrik evaluasi yang umum digunakan dalam sistem rekomendasi adalah:
 
@@ -177,22 +156,6 @@ Karena Anda menyukai film/acara TV 'Breaking Bad', mungkin Anda juga menyukai:
 9. ThirTEEN Terrors - TV Show - International TV Shows, TV Horror, TV Mysteries (Skor Kesamaan: 0.1667)
 10. The Judgement - TV Show - Crime TV Shows, International TV Shows, TV Dramas (Skor Kesamaan: 0.1638)
 
-#### Collaborative Filtering
-***TESTCASE 1 - COLLABORATIVE FILTERING***
-Menggunakan user_id: user_62
-
-Rekomendasi untuk user_62:
-1. Death by Magic - TV Show - Reality TV (Prediksi Rating: 4.46)
-2. Tukaram - Movie - Dramas, Faith & Spirituality, International Movies (Prediksi Rating: 4.42)
-3. Saheb Bibi Golaam - Movie - Dramas, International Movies (Prediksi Rating: 4.28)
-4. #FriendButMarried 2 - Movie - Dramas, International Movies, Romantic Movies (Prediksi Rating: 4.14)
-5. Sarvam Thaala Mayam (Telugu Version) - Movie - Dramas, International Movies, Music & Musicals (Prediksi Rating: 4.12)
-6. Psychokinesis - Movie - Action & Adventure, Comedies, International Movies (Prediksi Rating: 4.09)
-7. Desolation - Movie - Horror Movies, Thrillers (Prediksi Rating: 4.03)
-8. President - TV Show - International TV Shows, Korean TV Shows, TV Dramas (Prediksi Rating: 4.01)
-9. Megalobox - TV Show - Anime Series, International TV Shows (Prediksi Rating: 3.96)
-10. God's Not Dead - Movie - Dramas, Faith & Spirituality (Prediksi Rating: 3.80)
-
 ### Analisis Hasil Evaluasi
 
 Untuk mengevaluasi hasil rekomendasi, kami menggunakan metrik precision. Precision dihitung dengan rumus:
@@ -213,15 +176,8 @@ Dalam konteks ini, rekomendasi dianggap relevan jika memiliki genre yang sama at
    - Dari 10 rekomendasi, 7 memiliki genre yang sama atau serupa (Crime TV Shows, TV Dramas)
    - Precision@10 = (7/10) × 100% = 70%
 
-**Evaluasi Collaborative Filtering:**
-
-Untuk model collaborative filtering, evaluasi precision lebih kompleks karena rekomendasi didasarkan pada pola preferensi pengguna, bukan kesamaan konten. Namun, jika kita melihat keberagaman genre dalam rekomendasi:
-- Rekomendasi mencakup berbagai genre (Dramas, Horror Movies, Action & Adventure, dll.)
-- Ini menunjukkan bahwa model berhasil menangkap preferensi pengguna yang beragam
-- Dari 10 rekomendasi, 7 memiliki prediksi rating di atas 4.0, menunjukkan tingkat kepercayaan yang tinggi
-
 ## Kesimpulan
-Dalam proyek ini, telah berhasil diimplementasikan dua pendekatan sistem rekomendasi untuk konten Netflix: Content-Based Filtering dan Collaborative Filtering. Kedua pendekatan ini memiliki kelebihan dan kekurangan masing-masing, dan dapat digunakan untuk memberikan rekomendasi yang relevan kepada pengguna.
+Dalam proyek ini, telah berhasil diimplementasikan pendekatan sistem rekomendasi untuk konten Netflix dengan Content-Based Filtering. Pendekatan ini memiliki kelebihan dan kekurangan, dan dapat digunakan untuk memberikan rekomendasi yang relevan kepada pengguna.
 
 Untuk pengembangan lebih lanjut, dapat dipertimbangkan untuk mengimplementasikan pendekatan hybrid, menggunakan data interaksi pengguna yang lebih besar, dan menambahkan fitur-fitur tambahan seperti popularitas konten dan tren terkini.
 
