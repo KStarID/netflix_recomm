@@ -27,13 +27,13 @@ Tujuan dari proyek ini adalah:
 - Melakukan test case dan mendapatkan analisis dari model yang telah dibuat.
 
 ### Solution Statements
-Untuk mencapai tujuan di atas, berikut adalah pendekatan solusi yang akan diimplementasikan yaitu Content-Based Filtering:
+Untuk mencapai tujuan di atas, berikut adalah pendekatan solusi yang akan diimplementasikan:
 
-1. Content-Based Filtering
+Content-Based Filtering:
    
-   - Menggunakan teknik TF-IDF (Term Frequency-Inverse Document Frequency) untuk mengekstrak fitur dari deskripsi konten dan genre.
-   - Menghitung kesamaan kosinus (cosine similarity) antara konten untuk menemukan konten yang serupa.
-   - Merekomendasikan konten yang memiliki kesamaan tertinggi dengan konten yang disukai pengguna.
+- Menggunakan teknik TF-IDF (Term Frequency-Inverse Document Frequency) untuk mengekstrak fitur dari deskripsi konten dan genre.
+- Menghitung kesamaan kosinus (cosine similarity) antara konten untuk menemukan konten yang serupa.
+- Merekomendasikan konten yang memiliki kesamaan tertinggi dengan konten yang disukai pengguna.
 
 ## Data Understanding
 
@@ -82,28 +82,44 @@ Dari analisis missing values, ditemukan bahwa beberapa kolom memiliki nilai yang
 Nilai yang hilang ini perlu ditangani dalam tahap data preparation.
 
 ## Data Preparation
-Beberapa teknik data preparation yang dilakukan dalam proyek ini adalah:
+
+Tahap data preparation sangat penting untuk memastikan data siap digunakan dalam pemodelan sistem rekomendasi. Berikut adalah langkah-langkah data preparation yang dilakukan sesuai dengan urutan di notebook:
 
 ### 1. Penanganan Missing Values
-Untuk menangani nilai yang hilang dalam dataset, beberapa pendekatan diambil:
 
-- Untuk kolom director dan cast yang memiliki banyak nilai hilang, nilai yang hilang diisi dengan string "Unknown" karena informasi ini mungkin tidak tersedia untuk semua konten.
-- Untuk kolom country , nilai yang hilang diisi dengan "Unknown" karena informasi ini mungkin tidak tersedia untuk semua konten.
-- Untuk kolom date_added , nilai yang hilang diisi dengan tanggal median dari dataset karena hanya sedikit nilai yang hilang.
-- Untuk kolom rating , nilai yang hilang diisi dengan "Not Rated" karena mungkin konten tersebut belum mendapatkan rating.
+Langkah pertama dalam data preparation adalah menangani nilai-nilai yang hilang (missing values) dalam dataset. Dari analisis sebelumnya, diketahui bahwa beberapa kolom memiliki nilai yang hilang, terutama pada kolom 'director' (30.7%), 'cast' (10.2%), dan 'country' (8.3%). Penanganan missing values dilakukan dengan pendekatan berikut:
 
-Penanganan missing values ini penting untuk memastikan bahwa model tidak mengalami masalah saat memproses data.
+- Kolom 'director' diisi dengan 'Unknown Director' untuk menggantikan nilai yang hilang. Hal ini penting karena informasi direktur mungkin tidak tersedia untuk semua konten, tetapi kolom ini tetap diperlukan untuk fitur content-based filtering.
+- Kolom 'cast' diisi dengan 'Unknown Cast' untuk menggantikan nilai yang hilang. Pendekatan ini memungkinkan model tetap mempertimbangkan konten meskipun informasi pemain tidak lengkap.
+- Kolom 'country' diisi dengan 'Unknown Country' untuk menggantikan nilai yang hilang, memastikan konsistensi data geografis.
+- Kolom 'description' diisi dengan 'No description available' untuk menggantikan nilai yang hilang, karena deskripsi sangat penting untuk content-based filtering.
+- Kolom 'date_added' diisi dengan 'Unknown' untuk menggantikan nilai yang hilang.
+- Kolom 'rating' diisi dengan 'Not Rated' untuk menggantikan nilai yang hilang, memberikan label yang jelas untuk konten tanpa rating.
 
-### 2. Text Preprocessing
-Untuk kolom teks seperti description dan listed_in (genre), dilakukan preprocessing teks untuk mempersiapkan data untuk model content-based filtering. Preprocessing teks ini melibatkan konversi ke huruf kecil, penghapusan tanda baca, dan penghapusan spasi berlebih. Hal ini penting untuk mengurangi noise dalam data teks dan meningkatkan kualitas fitur yang diekstrak.
+Penanganan missing values ini memastikan bahwa dataset lengkap dan siap untuk pemrosesan lebih lanjut, menghindari error saat pemodelan dan meningkatkan kualitas rekomendasi.
 
-### 3. Feature Engineering
-Untuk model collaborative filtering, perlu dibuat dataset interaksi pengguna-konten. Karena dataset asli tidak memiliki informasi rating dari pengguna, dibuat dataset simulasi interaksi pengguna. Feature engineering ini penting untuk mempersiapkan data untuk model collaborative filtering, yang membutuhkan informasi tentang interaksi pengguna dengan konten.
+### 2. Pembuatan Fitur Content-Based
+
+Setelah menangani missing values, langkah selanjutnya adalah membuat fitur gabungan untuk content-based filtering. Pada tahap ini, dibuat kolom baru bernama 'content_features' yang menggabungkan informasi dari beberapa kolom penting:
+
+```python
+df['content_features'] = df['director'] + ' ' + df['cast'] + ' ' + df['listed_in'] + ' ' + df['description']
+```
+
+### 3. Text Preprocessing
+Langkah ketiga adalah melakukan preprocessing pada fitur teks gabungan yang telah dibuat. Preprocessing teks dilakukan dengan fungsi clean_text yang menerapkan serangkaian teknik pemrosesan teks dalam urutan berikut:
+
+1. Konversi ke Huruf Kecil : Semua teks diubah menjadi huruf kecil untuk memastikan konsistensi dan menghindari duplikasi kata yang sama dengan kapitalisasi berbeda. Contoh: 'Action' dan 'action' akan dianggap sebagai kata yang sama.
+2. Penghapusan Karakter Khusus dan Angka : Karakter non-alfanumerik dan angka dihapus dari teks untuk mengurangi noise. Ini membantu fokus pada kata-kata yang bermakna dan menghilangkan simbol-simbol yang tidak relevan untuk analisis konten.
+3. Tokenisasi : Teks dipecah menjadi token atau kata-kata individual menggunakan NLTK tokenizer. Proses ini penting untuk memungkinkan analisis pada tingkat kata dan penerapan teknik NLP lainnya.
+4. Penghapusan Stopwords : Kata-kata umum yang tidak memberikan informasi penting (seperti "the", "and", "is") dihapus dari teks. Penghapusan stopwords mengurangi dimensi data dan memfokuskan analisis pada kata-kata yang lebih informatif dan diskriminatif, meningkatkan efektivitas model content-based.
+5. Stemming : Kata-kata diubah ke bentuk akarnya menggunakan Porter Stemmer. Proses ini menggabungkan varian kata yang sama (misalnya "running", "runs", "ran" menjadi "run"), mengurangi dimensionalitas dan meningkatkan kemampuan model untuk mengenali konten serupa meskipun diekspresikan dengan bentuk kata yang berbeda.
+Hasil dari preprocessing teks ini adalah kolom baru 'content_features_cleaned' yang berisi teks yang telah dibersihkan dan distandarisasi. Preprocessing teks ini sangat penting untuk meningkatkan kualitas fitur yang akan digunakan dalam model TF-IDF dan perhitungan kesamaan konten.
 
 ## Modeling
-Dalam proyek ini, dua pendekatan sistem rekomendasi diimplementasikan: Content-Based Filtering dan Collaborative Filtering.
+Dalam proyek ini, sistem rekomendasi diimplementasikan menggunakan pendekatan Content-Based Filtering.
 
-### 1. Content-Based Filtering
+### Content-Based Filtering
 Model Content-Based Filtering merekomendasikan konten berdasarkan kesamaan karakteristik konten. Dalam implementasi ini, digunakan teknik TF-IDF untuk mengekstrak fitur dari deskripsi konten dan genre, kemudian dihitung kesamaan kosinus antara konten.
 
 Kelebihan:
@@ -111,6 +127,7 @@ Kelebihan:
 - Tidak memerlukan data dari pengguna lain, sehingga dapat memberikan rekomendasi untuk konten baru atau yang jarang ditonton.
 - Dapat memberikan rekomendasi yang sangat spesifik berdasarkan karakteristik konten.
 - Transparan, karena rekomendasi didasarkan pada kesamaan konten yang dapat dijelaskan.
+
 Kekurangan:
 
 - Tidak dapat merekomendasikan konten di luar preferensi yang sudah diketahui pengguna.

@@ -66,7 +66,14 @@ df = pd.read_csv('/content/netflix-shows/netflix_titles.csv', skipfooter=1, engi
 df.info()
 df.describe()
 
-"""# Data Exploration"""
+"""# Data Exploration
+
+## Membaca dan Eksplorasi Data Awal
+
+Pada tahap ini, kita akan membaca dataset Netflix Shows yang berisi informasi tentang film dan acara TV yang tersedia di platform Netflix.
+Dataset ini akan menjadi dasar untuk sistem rekomendasi yang akan kita kembangkan.
+Kita akan menggunakan pandas untuk membaca data dan melakukan eksplorasi awal untuk memahami struktur dan karakteristik dataset.
+"""
 
 df.head() # Menampilkan 5 data pertama
 
@@ -99,7 +106,22 @@ plt.xlabel('Jumlah Konten')
 plt.tight_layout()
 plt.show()
 
-"""# Pre-Processing"""
+"""### Insight dari Eksplorasi Data Awal
+
+Dari hasil eksplorasi awal, kita dapat melihat bahwa:
+- Dataset terdiri dari 8806 entri dengan 12 kolom
+- Terdapat beberapa kolom dengan nilai yang hilang (missing values), terutama pada kolom 'director' (2634 nilai hilang), 'cast' (825 nilai hilang), dan 'country' (831 nilai hilang)
+- Tahun rilis konten berkisar dari 1925 hingga 2021, dengan mayoritas konten dirilis setelah tahun 2013 (berdasarkan nilai kuartil pertama)
+- Rata-rata tahun rilis adalah 2014, menunjukkan bahwa sebagian besar konten di Netflix relatif baru
+
+Nilai-nilai yang hilang ini perlu ditangani dalam tahap data preparation untuk memastikan kualitas model rekomendasi yang akan dikembangkan.
+
+# Pre-Processing
+
+## Penanganan Missing Values
+
+Sebelum melanjutkan ke tahap pemodelan, kita perlu menangani nilai-nilai yang hilang dalam dataset. Penanganan missing values penting untuk memastikan bahwa model dapat memproses data dengan baik dan menghasilkan rekomendasi yang akurat. Untuk setiap kolom dengan nilai yang hilang, kita akan menggunakan pendekatan yang sesuai berdasarkan karakteristik data.
+"""
 
 # Mengisi nilai yang hilang
 df['director'].fillna('Unknown Director', inplace=True)
@@ -111,6 +133,28 @@ df['rating'].fillna('Not Rated', inplace=True)
 
 print("\nSetelah:")
 print(df.isnull().sum())
+
+"""### Hasil Penanganan Missing Values
+
+Setelah melakukan penanganan missing values:
+- Kolom 'director' dan 'cast' yang memiliki nilai hilang telah diisi dengan string "Unknown"
+- Kolom 'country' yang memiliki nilai hilang juga diisi dengan "Unknown"
+- Kolom 'date_added' yang memiliki sedikit nilai hilang telah diisi dengan nilai median
+- Kolom 'rating' yang memiliki nilai hilang telah diisi dengan "Not Rated"
+
+Dengan penanganan ini, dataset kini siap untuk tahap preprocessing teks dan pembuatan fitur.
+
+## Preprocessing Teks untuk Content-Based Filtering
+
+Untuk membangun sistem rekomendasi berbasis konten (content-based filtering), kita perlu melakukan preprocessing pada data teks seperti deskripsi dan genre. Preprocessing ini meliputi:
+
+1. **Tokenisasi**: Memecah teks menjadi token atau kata-kata individual
+2. **Penghapusan Stopwords**: Menghilangkan kata-kata umum yang tidak memberikan informasi penting (seperti "the", "and", "is")
+3. **Stemming**: Mengubah kata-kata ke bentuk akarnya untuk menggabungkan varian kata yang sama
+4. **Penghapusan Karakter Khusus**: Membersihkan teks dari tanda baca dan karakter non-alfanumerik
+
+Langkah-langkah ini penting untuk mengurangi noise dalam data teks dan meningkatkan kualitas fitur yang akan digunakan dalam model rekomendasi.
+"""
 
 def clean_text(text):
     # Mengubah ke lowercase
@@ -136,6 +180,17 @@ df['content_features'] = df['director'] + ' ' + df['cast'] + ' ' + df['listed_in
 df['content_features_cleaned'] = df['content_features'].apply(clean_text) # Proses cleaning
 
 df # Menampilkan data
+
+"""### Hasil Preprocessing Teks
+
+Setelah melakukan preprocessing teks:
+- Teks telah dikonversi ke huruf kecil untuk konsistensi
+- Stopwords telah dihapus untuk mengurangi dimensi dan fokus pada kata-kata yang lebih informatif
+- Kata-kata telah di-stemming untuk menggabungkan varian kata yang sama
+- Karakter khusus dan tanda baca telah dihapus
+
+Hasil preprocessing ini akan membantu dalam ekstraksi fitur yang lebih efektif menggunakan TF-IDF.
+"""
 
 # Membuat dataframe untuk simulasi rating
 np.random.seed(42)
@@ -171,7 +226,14 @@ print(ratings_df.head())
 df.to_csv('netflix_processed.csv', index=False)
 ratings_df.to_csv('netflix_ratings_simulated.csv', index=False)
 
-"""# Content-Based Filtering"""
+"""# Content-Based Filtering
+
+## Ekstraksi Fitur dengan TF-IDF dan Perhitungan Similarity
+
+Setelah preprocessing teks, kita akan menggunakan teknik TF-IDF (Term Frequency-Inverse Document Frequency) untuk mengekstrak fitur dari teks yang telah diproses. TF-IDF memberikan bobot yang lebih tinggi pada kata-kata yang unik dan informatif dalam dokumen, sambil mengurangi pengaruh kata-kata yang umum muncul di banyak dokumen.
+
+Selanjutnya, kita akan menghitung kesamaan kosinus (cosine similarity) antara konten berdasarkan fitur TF-IDF. Kesamaan kosinus mengukur sudut antara dua vektor, memberikan nilai antara 0 (tidak mirip sama sekali) hingga 1 (identik). Semakin tinggi nilai kesamaan kosinus, semakin mirip kedua konten tersebut.
+"""
 
 # Menggunakan TF-IDF Vectorizer untuk mengekstrak fitur dari teks
 print("Mengekstrak fitur menggunakan TF-IDF...")
@@ -212,7 +274,27 @@ def get_content_based_recommendations(title, cosine_sim=cosine_sim, df=df, indic
     recommendations['similarity_score'] = [i[1] for i in sim_scores]
     return recommendations
 
-"""# Evaluation
+"""### Hasil Ekstraksi Fitur dan Perhitungan Similarity
+
+Setelah melakukan ekstraksi fitur dengan TF-IDF dan perhitungan similarity:
+- Matriks TF-IDF telah dibuat, merepresentasikan setiap konten sebagai vektor dalam ruang fitur
+- Matriks kesamaan kosinus telah dihitung, memberikan ukuran kesamaan antara setiap pasangan konten
+
+Matriks kesamaan ini akan menjadi dasar untuk memberikan rekomendasi konten yang serupa dengan konten yang disukai pengguna dalam model content-based filtering.
+
+# Evaluation
+
+## Implementasi Fungsi Rekomendasi Content-Based
+
+Dengan matriks kesamaan yang telah dihitung, kita sekarang dapat mengimplementasikan fungsi untuk memberikan rekomendasi konten berdasarkan kesamaan konten (content-based filtering). Fungsi ini akan:
+
+1. Menerima judul konten sebagai input
+2. Mencari indeks konten tersebut dalam dataset
+3. Mengambil nilai kesamaan konten tersebut dengan semua konten lainnya
+4. Mengurutkan konten berdasarkan nilai kesamaan (dari tertinggi ke terendah)
+5. Mengembalikan top-N konten yang paling mirip
+
+Pendekatan ini memungkinkan kita untuk merekomendasikan konten yang memiliki karakteristik serupa dengan konten yang disukai pengguna.
 
 # Uji Coba
 """
