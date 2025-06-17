@@ -351,3 +351,54 @@ except IndexError:
     # Mendapatkan indeks film dari judul
     movie_idx1 = df[df['title'] == sample_titles[0]].index[0]
     movie_idx2 = df[df['title'] == sample_titles[1]].index[0]
+
+# Implementasi perhitungan metrik evaluasi Precision@10
+def calculate_precision_at_k(recommended_items, reference_genres, k=10):
+    """Menghitung Precision@K untuk rekomendasi content-based
+
+    Args:
+        recommended_items: List item yang direkomendasikan (dataframe rows)
+        reference_genres: Genre dari item referensi
+        k: Jumlah rekomendasi yang dievaluasi
+
+    Returns:
+        float: Nilai Precision@K
+    """
+    relevant_count = 0
+    for i in range(min(k, len(recommended_items))):
+        item_genres = recommended_items[i]['listed_in']
+        # Periksa apakah ada genre yang sama
+        if any(genre in reference_genres for genre in item_genres.split(', ')):
+            relevant_count += 1
+
+    return relevant_count / k
+
+# Evaluasi Testcase 1 - Stranger Things
+print("\n*** EVALUASI TESTCASE 1 - STRANGER THINGS ***")
+reference_item1 = df[df['title'] == 'Stranger Things'].iloc[0]
+reference_genres1 = reference_item1['listed_in']
+print(f"Genre referensi: {reference_genres1}")
+
+# Ambil 10 rekomendasi teratas (tidak termasuk item referensi)
+scores1 = list(enumerate(cosine_sim[movie_idx1]))
+sorted_scores1 = sorted(scores1, key=lambda x: x[1], reverse=True)[1:11]
+recommended_items1 = [df.iloc[idx] for idx, _ in sorted_scores1]
+
+# Hitung Precision@10
+precision1 = calculate_precision_at_k(recommended_items1, reference_genres1, 10)
+print(f"Precision@10: {precision1:.2f} ({int(precision1*10)}/10 rekomendasi relevan)")
+
+# Evaluasi Testcase 2 - Breaking Bad
+print("\n*** EVALUASI TESTCASE 2 - BREAKING BAD ***")
+reference_item2 = df[df['title'] == 'Breaking Bad'].iloc[0]
+reference_genres2 = reference_item2['listed_in']
+print(f"Genre referensi: {reference_genres2}")
+
+# Ambil 10 rekomendasi teratas (tidak termasuk item referensi)
+scores2 = list(enumerate(cosine_sim[movie_idx2]))
+sorted_scores2 = sorted(scores2, key=lambda x: x[1], reverse=True)[1:11]
+recommended_items2 = [df.iloc[idx] for idx, _ in sorted_scores2]
+
+# Hitung Precision@10
+precision2 = calculate_precision_at_k(recommended_items2, reference_genres2, 10)
+print(f"Precision@10: {precision2:.2f} ({int(precision2*10)}/10 rekomendasi relevan)")

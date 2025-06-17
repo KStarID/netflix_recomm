@@ -39,7 +39,7 @@ Content-Based Filtering:
 
 Dataset yang digunakan dalam proyek ini adalah Netflix Shows dataset yang diambil dari Kaggle. Dataset ini berisi informasi tentang film dan acara TV yang tersedia di platform Netflix hingga tahun 2021. Dataset dapat diakses melalui tautan berikut: [Netflix Shows Dataset](https://www.kaggle.com/datasets/shivamb/netflix-shows/data)
 
-Dataset ini terdiri dari 8807 baris dan 12 kolom, dengan setiap baris mewakili satu konten (film atau acara TV) yang tersedia di Netflix. Dataset ini mencakup berbagai informasi seperti judul, jenis konten, direktur, aktor, negara, tanggal rilis, rating, durasi, genre, dan deskripsi.
+Dataset ini terdiri dari 8806 baris dan 12 kolom, dengan setiap baris mewakili satu konten (film atau acara TV) yang tersedia di Netflix. Dataset ini mencakup berbagai informasi seperti judul, jenis konten, direktur, aktor, negara, tanggal rilis, rating, durasi, genre, dan deskripsi.
 
 Berikut adalah deskripsi variabel-variabel dalam dataset:
 - show_id : ID unik untuk setiap konten di Netflix.
@@ -74,11 +74,12 @@ Genre yang paling umum di Netflix adalah International Movies, Dramas, dan Comed
 
 Dari analisis missing values, ditemukan bahwa beberapa kolom memiliki nilai yang hilang:
 
-- director: 30.7% missing
-- cast: 10.2% missing
-- country: 8.3% missing
-- date_added: 0.1% missing
-- rating: 0.5% missing
+- director: 29.91% missing
+- cast: 9.37% missing
+- country: 9.44% missing
+- date_added: 0.11% missing
+- rating: 0.05% missing
+- duration: 0.03% missing
 Nilai yang hilang ini perlu ditangani dalam tahap data preparation.
 
 ## Data Preparation
@@ -116,6 +117,17 @@ Langkah ketiga adalah melakukan preprocessing pada fitur teks gabungan yang tela
 5. Stemming : Kata-kata diubah ke bentuk akarnya menggunakan Porter Stemmer. Proses ini menggabungkan varian kata yang sama (misalnya "running", "runs", "ran" menjadi "run"), mengurangi dimensionalitas dan meningkatkan kemampuan model untuk mengenali konten serupa meskipun diekspresikan dengan bentuk kata yang berbeda.
 Hasil dari preprocessing teks ini adalah kolom baru 'content_features_cleaned' yang berisi teks yang telah dibersihkan dan distandarisasi. Preprocessing teks ini sangat penting untuk meningkatkan kualitas fitur yang akan digunakan dalam model TF-IDF dan perhitungan kesamaan konten.
 
+### 4. Simulasi Data Rating
+
+Untuk keperluan pengembangan sistem rekomendasi, dibuat simulasi data rating pengguna terhadap konten Netflix. Simulasi ini penting untuk menguji dan mengevaluasi model rekomendasi dalam skenario nyata. Langkah-langkah simulasi data rating adalah sebagai berikut:
+
+1. Membuat 1000 ID pengguna unik (user_1 hingga user_1000)
+2. Untuk setiap pengguna, secara acak dipilih 20-50 item dari dataset
+3. Untuk setiap item yang dipilih, diberikan rating acak antara 1-5 dengan distribusi probabilitas yang condong ke rating tinggi (lebih realistis)
+4. Hasil simulasi menghasilkan dataset ratings_df dengan 34575 data rating
+
+Simulasi data rating ini memungkinkan pengujian model rekomendasi dengan data yang menyerupai pola rating pengguna di dunia nyata, meskipun data tersebut dibuat secara sintetis.
+
 ## Modeling
 Dalam proyek ini, sistem rekomendasi diimplementasikan menggunakan pendekatan Content-Based Filtering.
 
@@ -134,19 +146,9 @@ Kekurangan:
 - Tidak memperhitungkan faktor popularitas atau kualitas konten.
 - Terlalu bergantung pada metadata konten yang tersedia.
 
-## Evaluation
-Dalam proyek ini, evaluasi dilakukan untuk mengukur seberapa baik model rekomendasi dalam memberikan rekomendasi yang relevan kepada pengguna. Beberapa metrik evaluasi yang umum digunakan dalam sistem rekomendasi adalah:
-
-1. **Precision**: Mengukur proporsi item yang direkomendasikan yang relevan dengan preferensi pengguna.
-2. **Recall**: Mengukur proporsi item relevan yang berhasil direkomendasikan dari seluruh item relevan yang tersedia.
-3. **F1-Score**: Rata-rata harmonik dari precision dan recall, memberikan keseimbangan antara kedua metrik tersebut.
-4. **Mean Average Precision (MAP)**: Mengukur rata-rata precision pada berbagai tingkat recall.
-5. **Normalized Discounted Cumulative Gain (NDCG)**: Mengukur kualitas peringkat rekomendasi dengan mempertimbangkan posisi item yang relevan.
-
 ### Result
 Pada proyek ini, hasil rekomendasi yang diberikan adalah top-10 judul yang diurutkan berdasarkan skor tertinggi sesuai dengan judul yang telah dipilih oleh pengguna.
 
-#### Content-Based Filtering
 ***TESTCASE 1 - CONTENT-BASED FILTERING***
 Karena Anda menyukai film/acara TV 'Stranger Things', mungkin Anda juga menyukai:
 1. Beyond Stranger Things - TV Show - Stand-Up Comedy & Talk Shows, TV Mysteries, TV Sci-Fi & Fantasy (Skor Kesamaan: 0.5122)
@@ -173,6 +175,15 @@ Karena Anda menyukai film/acara TV 'Breaking Bad', mungkin Anda juga menyukai:
 9. ThirTEEN Terrors - TV Show - International TV Shows, TV Horror, TV Mysteries (Skor Kesamaan: 0.1667)
 10. The Judgement - TV Show - Crime TV Shows, International TV Shows, TV Dramas (Skor Kesamaan: 0.1638)
 
+## Evaluation
+Dalam proyek ini, evaluasi dilakukan untuk mengukur seberapa baik model rekomendasi dalam memberikan rekomendasi yang relevan kepada pengguna. Beberapa metrik evaluasi yang umum digunakan dalam sistem rekomendasi adalah:
+
+1. **Precision**: Mengukur proporsi item yang direkomendasikan yang relevan dengan preferensi pengguna.
+2. **Recall**: Mengukur proporsi item relevan yang berhasil direkomendasikan dari seluruh item relevan yang tersedia.
+3. **F1-Score**: Rata-rata harmonik dari precision dan recall, memberikan keseimbangan antara kedua metrik tersebut.
+4. **Mean Average Precision (MAP)**: Mengukur rata-rata precision pada berbagai tingkat recall.
+5. **Normalized Discounted Cumulative Gain (NDCG)**: Mengukur kualitas peringkat rekomendasi dengan mempertimbangkan posisi item yang relevan.
+
 ### Analisis Hasil Evaluasi
 
 Untuk mengevaluasi hasil rekomendasi, kami menggunakan metrik precision. Precision dihitung dengan rumus:
@@ -186,12 +197,12 @@ Dalam konteks ini, rekomendasi dianggap relevan jika memiliki genre yang sama at
 **Testcase 1 (Stranger Things)**: 
    - Genre utama: TV Mysteries, TV Sci-Fi & Fantasy
    - Dari 10 rekomendasi, 8 memiliki genre yang sama atau serupa
-   - Precision@10 = (8/10) × 100% = 80%
+   - Precision@10 = (7/10) × 100% = 70%
 
 **Testcase 2 (Breaking Bad)**:
    - Genre utama: Crime TV Shows, TV Dramas
    - Dari 10 rekomendasi, 7 memiliki genre yang sama atau serupa (Crime TV Shows, TV Dramas)
-   - Precision@10 = (7/10) × 100% = 70%
+   - Precision@10 = (8/10) × 100% = 80%
 
 ## Kesimpulan
 Dalam proyek ini, telah berhasil diimplementasikan pendekatan sistem rekomendasi untuk konten Netflix dengan Content-Based Filtering. Pendekatan ini memiliki kelebihan dan kekurangan, dan dapat digunakan untuk memberikan rekomendasi yang relevan kepada pengguna.
